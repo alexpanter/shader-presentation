@@ -1,0 +1,310 @@
+\documentclass{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{array}
+
+\usepackage{alltt}
+
+\addtocounter{footnote}{1}
+\setcounter{tocdepth}{5}
+\setcounter{secnumdepth}{5}
+\renewcommand{\floatpagefraction}{0.75}
+
+%Information to be included in the title page:
+\title{Shading with OpenGL 3.3}
+\author{Alexander Christensen}
+\institute{Department of Computer Science \\ University of Copenhagen}
+\date{2018}
+
+%% Reference an equation, a figure, or a section
+
+%% \secref{label} - make a reference to a section
+\newcommand{\secref}[1]{Section~\ref{#1}}
+
+%% \eqref{reference} - make a reference to an equation
+%%\newcommand{\eqref}[1]{(\ref{#1})}
+
+%% \figref{reference} - make a reference to an figure
+\newcommand{\figref}[1]{Figure~\ref{#1}}
+
+\newcommand{\basetop}[1]{\vtop{\vskip-1ex\hbox{#1}}}
+\newcommand{\source}[1]{\let\thefootnote\relax\footnotetext{\scriptsize\textcolor{kugray1}{Source: #1}}}
+
+\bibliographystyle{longalpha}
+\bibliography{./ref}
+
+\input{mybeamermacros}
+
+\mode<presentation>
+{
+  \usetheme{Diku}
+  \beamertemplatenavigationsymbolsempty
+  \setbeamercovered{invisible}
+%  \setbeamercovered{transparent=15}
+}
+
+%% Kennys pseudocode environment
+
+\newenvironment{pseudocode}{
+  \begin{center}
+    \begin{minipage}[t]{0.8\columnwidth}
+      \footnotesize
+      \rule{\columnwidth}{1pt}
+    }{
+      \rule{\columnwidth}{1pt}
+    \end{minipage}
+  \end{center}
+}
+
+{
+\AtBeginSection[wef]
+{
+\begin{frame}
+\frametitle{Table of Contents}
+\tableofcontents[currentsection]{1}
+\end{frame}
+}
+}
+
+
+
+
+
+\begin{document}
+
+% Set background to front page
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{front}}
+{
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+}
+
+% Set background to rest of pages
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{background}}
+
+%
+%
+%
+\begin{frame}
+\frametitle{Overview}
+\tableofcontents
+%% This is a text in first frame. This is a text in first frame. This is a text in first frame.
+\end{frame}
+
+
+%
+%
+%
+\section{Shading pipeline}
+
+\begin{frame}
+\frametitle{Shading pipeline}
+
+TODO: Include pipeline picture!
+
+Where are the scan conversion algorithms run?
+
+What is rasterization?
+
+What is a shader?
+\end{frame}
+
+
+%
+%
+%
+\section{glsl - OpenGL Shading Language}
+
+\begin{frame}
+\frametitle{glsl - OpenGL Shading Language}
+
+History with OpenGL (fixed-function pipeline vs. programmable shaders)
+
+glsl is a DSL for writing programmable shaders
+
+glsl has a C-like language syntax
+
+Shaders are purely run on the GPU!
+\end{frame}
+
+
+%
+%
+%
+\begin{frame}
+\frametitle{glsl - OpenGL Shading Language}
+Supported expressions:
+
+\begin{itemize}
+\item primitive data types: \texttt{float, int, uint, $\ldots$}
+\item vector/matrix data types: \texttt{mat2, mat3, mat4, vec2, vec3, vec4, $\ldots$}
+\item special types: \texttt{struct, enum}
+\item functions
+\end{itemize}
+
+\end{frame}
+
+
+%
+%
+%
+\begin{frame}
+\frametitle{glsl - OpenGL Shading Language}
+
+\subsection{Runtime requirements}
+Important guarantee: determinable running time!
+
+\begin{itemize}
+\item No while loops
+\item No recursion
+\end{itemize}
+
+\subsection{Ensure parallelism}
+\underline{Remarks:}\\\vspace{1mm}
+Shader execution calls are independent and run in parallel
+
+Not possible to read/modify return values of other shader calls in shader code
+
+Execution units on GPU's typically cannot do branch-prediction very well!
+\end{frame}
+
+
+%
+%
+%
+\section{Shader programs}
+
+\subsection{Vertex shader}
+\begin{frame}
+\frametitle{Shader programs - Vertex shader}
+
+Per-vertex processing
+
+Built-in variables: \texttt{gl\_Position}
+
+Can modify position.
+
+Outputs a vertex position which must be in normalized coordinates (NDC)
+\end{frame}
+
+
+%
+%
+%
+\subsection{Fragment shader}
+\begin{frame}
+\frametitle{Shader programs - Fragment shader}
+Per-fragment processing.
+
+Each fragment is typically the size of a pixel
+
+Built-in variables: \texttt{gl\_FragCoord, gl\_FrontFacing, gl\_PointCoord}
+
+Outputs a color value (r, g, b, a), in normalized coordinates ($[0, 1]$).
+
+\end{frame}
+
+
+%
+%
+%
+\begin{frame}
+\frametitle{Shader variables - Attributes}
+
+Attributes are used in vertex shaders:
+
+\begin{alltt}\footnotesize
+layout (location = 0) in vec3 vertexPosition;\\
+layout (location = 1) in vec2 texCoord;
+\end{alltt}
+
+Data, such as vertex positions, are buffered to the GPU.
+
+Attributes are pointers to this data.
+
+\begin{alltt}
+GLfloat data[] = \{\\
+    // vertexPosition \ensuremath{\quad} texCoord\\
+    0.0f, 0.5f, -0.3f,\ensuremath{\quad}    0.0f, 0.0f,\\
+    //  ...\\
+\}
+\end{alltt}
+
+\end{frame}
+
+
+%% \begin{frame}
+%% \frametitle{Shader variables - Uniforms}
+%% \end{frame}
+
+%% \begin{frame}
+%% \frametitle{Shader variables - input/ouput}
+%% \end{frame}
+
+%% \begin{frame}
+%% \frametitle{Shader variables - interpolation qualifiers}
+%% \end{frame}
+
+%
+%
+%
+\begin{frame}
+\frametitle{How many times is it run?}
+
+Imagine a triangle, in NDC, with coordinates $(-1,-1,0), (-1,1,0), (1,1,0)$.
+
+Assume application window of size $800 \times 600$
+
+$\rightarrow \quad$ 3 vertex shader calls
+
+$\rightarrow \quad \approx (800\cdot 600) / 2\ =\ $ 240000 fragment shader calls!
+\end{frame}
+
+
+%
+%
+%
+\begin{frame}
+\frametitle{Creating a shader program}
+\end{frame}
+
+\begin{frame}
+\frametitle{Debugging}
+Black screen
+
+Check variables before they are sent to the GPU
+\end{frame}
+
+
+%
+%
+%
+\section{Examples}
+
+\begin{frame}
+\frametitle{Example 1 - static rendering}
+\end{frame}
+
+\begin{frame}
+\frametitle{Example 2 - animation}
+\end{frame}
+
+\begin{frame}
+\frametitle{Summary}
+\end{frame}
+
+\begin{frame}
+\frametitle{References}
+\end{frame}
+
+%\footnotesize
+\bibliography{refs}
+
+\end{document}
