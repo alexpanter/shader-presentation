@@ -36,8 +36,8 @@
 \newcommand{\basetop}[1]{\vtop{\vskip-1ex\hbox{#1}}}
 \newcommand{\source}[1]{\let\thefootnote\relax\footnotetext{\scriptsize\textcolor{kugray1}{Source: #1}}}
 
-\bibliographystyle{longalpha}
-\bibliography{ref}
+%\bibliographystyle{longalpha}
+%\bibliography{refs}
 
 \input{mybeamermacros}
 
@@ -102,7 +102,7 @@
 \section{Shading pipeline}
 
 \begin{frame}
-\frametitle{Shading pipeline - states}
+\frametitle{Shading pipeline - stages}
 \begin{columns}
 \column{0.5\textwidth}
 Primitives go through a pipeline before being rendered to screen.
@@ -117,7 +117,7 @@ All the stages are performed on the graphics hardware.
 Some of these stages are programmable -
 
 \vspace{1mm}
-we refer to these as shaders!
+we refer to them as shaders!
 \column{0.5\textwidth}
 \includegraphics[width=36mm]{images/RenderingPipeline.png}
 \end{columns}
@@ -141,11 +141,14 @@ Blue areas are the shaders we write
 \frametitle{glsl - OpenGL Shading Language}
 glsl is a DSL for writing programmable shaders
 
+Shaders are purely run on the GPU!
+
 History with OpenGL (fixed-function pipeline vs. programmable shaders)
 
-glsl has a C-like language syntax
+glsl has been available since OpenGL 2.2
+\footnote{April 2004\\}
 
-Shaders are purely run on the GPU!
+glsl has a C-like language syntax
 \end{frame}
 
 
@@ -165,6 +168,7 @@ bvec2, ivec2, uvec2, $\ldots$}
 \item overloaded operators (\texttt{+,-,*,/}) for built-in data types.
 \item Bitwise operators, logical operators, relational operators, $\ldots$
 \item texture samplers (\texttt{sampler2D, sampler3D, $\ldots$})
+\item Preprocessor directives (\texttt{\#define MAX\_HEIGHT 127.0f})
 \end{itemize}
 \end{frame}
 
@@ -205,7 +209,7 @@ Language limitations:
 \item No recursion
 \item No pointers
 \item No exceptions
-\item No memory allocations (???)
+\item No memory allocations
 \end{itemize}
 Important guarantee: determinable running time!
 
@@ -224,7 +228,6 @@ so avoid \texttt{if}-statements as much as possible.
 %
 \section{Shader programs}
 
-\subsection{Vertex shader}
 \begin{frame}
 \frametitle{Shader programs - Vertex shader}
 
@@ -235,6 +238,8 @@ Built-in variables: \texttt{gl\_Position, gl\_PointSize}
 Outputs a vertex position (x, y, z, w), which must be in NDC.
 \footnote{Normalized Device Coordinates $x,y,z \in [-1,\,1],\ \ w \in [0,1]$.\\}
 
+Built-in variable \texttt{gl\_Position} must be set!
+
 \vspace{5mm}
 \underline{Typical usage:}\\\vspace{1mm}
 Camera projection, calculate vertex normals, animation
@@ -244,17 +249,17 @@ Camera projection, calculate vertex normals, animation
 %
 %
 %
-\subsection{Fragment shader}
 \begin{frame}
 \frametitle{Shader programs - Fragment shader}
 Per-fragment processing.
 
 Each fragment is typically the size of a pixel
+\footnote{Can be smaller if multisampling is enabled.\\}
 
 Built-in variables: \texttt{gl\_FragCoord, gl\_FrontFacing, gl\_PointCoord,
 gl\_FragDepth}
 
-Outputs a color value (r, g, b, a), in normalized coordinates ($[0, 1]$).
+Outputs a color value (r, g, b, a), in normalized coordinates $[0, 1]$
 
 \vspace{5mm}
 \underline{Typical usage:}\\\vspace{1mm}
@@ -285,12 +290,15 @@ If we can do some calculation in vertex shader, we should.
 %
 %
 %
+\section{Shader variables}
+
 \begin{frame}
 \frametitle{Shader variables - Attributes}
 
 Attributes are used in vertex shaders:
 
 \begin{alltt}\footnotesize
+// vertex shader\\
 layout (location = 0) in vec3 vertexPosition;\\
 layout (location = 1) in vec2 texCoord;
 \end{alltt}
@@ -299,12 +307,14 @@ Data, such as vertex positions, are buffered to the GPU.
 
 Attributes are pointers into this data.
 
-\begin{alltt}
+\begin{alltt}\footnotesize
+// application\\
 GLfloat data[] = \{\\
-    // vertexPosition \ensuremath{\quad} texCoord\\
-    0.0f, 0.5f, -0.3f,\ensuremath{\quad}    0.0f, 0.0f,\\
-    //  ...\\
-\}
+\ensuremath{\qquad}// vertexPosition \ensuremath{\quad} texCoord\\
+\ensuremath{\qquad}0.0f, 0.5f, -0.3f,\ensuremath{\quad}    0.0f, 0.0f,\\
+\ensuremath{\qquad}//  ...\\
+\}\\
+glBufferData( ... );
 \end{alltt}
 
 \end{frame}
@@ -315,6 +325,27 @@ GLfloat data[] = \{\\
 %
 \begin{frame}
 \frametitle{Shader variables - Uniforms}
+Uniforms are immutable values that are shared across all shader stages
+
+They can be arbitrary data types
+
+\begin{alltt}\footnotesize
+// vertex shader\\
+uniform mat4 model; // model matrix\\
+uniform mat4 viewPerspective; // projection matrix\\
+uniform vec3 cameraPosition;\\
+
+\vspace{3mm}
+// fragment shader\\
+struct pointLight \{\\
+\ensuremath{\qquad}vec3 position;\\
+\ensuremath{\qquad}vec3 ambient;\\
+\ensuremath{\qquad}vec3 diffuse;\\
+\ensuremath{\qquad}float specular;\\
+\};\\
+uniform pointLight lamp;\\
+uniform vec3 cameraPosition;
+\end{alltt}
 \end{frame}
 
 
@@ -323,18 +354,19 @@ GLfloat data[] = \{\\
 %
 \begin{frame}
 \frametitle{Shader variables - input/ouput}
-Input/Output variables allow shaders to pass variables down the pipeline. (!!!)
+Input/Output variables allow us to pass variables down the pipeline,
+from one shader to the next.
 \begin{alltt}\footnotesize
 // vertex shader\\
 out vec4 vertexColor;\\
 
 void main() \{\\
-    vertexColor = vec4(1.0f, 0.0f, 0.3f, 1.0f);\\
+\ensuremath{\qquad}vertexColor = vec4(1.0f, 0.0f, 0.3f, 1.0f);\\
 \}\\
 
 \vspace{3mm}
 // fragment shader\\
-in vec4 vertexColor;\\
+in vec4 vertexColor; // this color value will be smoohtly interpolated\\
 \end{alltt}
 \end{frame}
 
@@ -394,15 +426,19 @@ syntax.
 \vspace{5mm}
 We have seen some examples of how programmable shaders can be used to
 interpolate colors, perform linear transformations, and create animations.
-
 \end{frame}
 
+
+%
+%
+%
 \begin{frame}
 \frametitle{References}
+\nocite{*}
+\bibliography{refs}{}
+\bibliographystyle{alpha}
 \end{frame}
 
-%\footnotesize
-\bibliographystyle{longalpha}
-\bibliography{refs}
+
 
 \end{document}
