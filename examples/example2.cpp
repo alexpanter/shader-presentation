@@ -3,12 +3,34 @@
 #include "fileIO.hpp"
 #include "system.hpp"
 
+bool wait = false;
+GLfloat timer;
 
 void key_callback(GLFWwindow* win, int key, int scancode, int action, int mode)
 {
-    if(action == GLFW_PRESS && key == GLFW_KEY_ESCAPE)
+    if(wait)
     {
-        glfwSetWindowShouldClose(win, GL_TRUE);
+        wait = false;
+        return;
+    }
+    if(action == GLFW_PRESS)
+    {
+        switch(key)
+        {
+        case GLFW_KEY_ESCAPE:
+            glfwSetWindowShouldClose(win, GL_TRUE);
+            break;
+        }
+    }
+    else if(action == GLFW_RELEASE)
+    {
+        switch(key)
+        {
+        case GLFW_KEY_SPACE:
+            wait = true;
+            glfwSetTime(timer);
+            break;
+        }
     }
 }
 
@@ -45,10 +67,17 @@ int main()
 
     while(!glfwWindowShouldClose(window.GetWindow()))
     {
-        window.PollEvents();
+        if(wait)
+        {
+            window.WaitEvents();
+        }
+        else
+        {
+            window.PollEvents();
+        }
         window.ClearWindow();
-        GLfloat time = glfwGetTime();
-        shader.SetUniform("xytime", glm::vec2(cos(time), sin(time)));
+        timer = glfwGetTime();
+        shader.SetUniform("xytime", glm::vec2(cos(timer), sin(timer)));
         glDrawArrays(GL_TRIANGLES, 0, 3);
         window.SwapBuffers();
     }

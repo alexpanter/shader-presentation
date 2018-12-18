@@ -4,17 +4,26 @@ FLAGS=-Werror
 
 LINK_OPENGL=-lGLEW -lGL -lGLU -lglfw3 -lX11 -lXxf86vm -lXrandr -lpthread -lXi -ldl -lXinerama -lXcursor
 
-example1: example1.cpp
-	$(CLANG) $(STD) $< -o $@ $(LINK_OPENGL)
+EX1=example1
+EX2=example2
 
-example2: example2.cpp
-	$(CLANG) $(STD) $< -o $@ $(LINK_OPENGL)
+build1: ${EX1}.cpp
+	$(CLANG) $(STD) $< -o ${EX1} $(LINK_OPENGL)
 
-run1:
+build2: ${EX2}.cpp
+	$(CLANG) $(STD) $< -o ${EX2} $(LINK_OPENGL)
+
+run1: ${EX1}
 	./example1
 
-run2:
+run2: ${EX2}
 	./example2
 
+test1: build1 run1
+
+test2: build2 run2
+
+.PHONY: clean
+
 clean:
-	rm -rf *.o example1 example2
+	rm -rf *.o ${EX1} ${EX2}
